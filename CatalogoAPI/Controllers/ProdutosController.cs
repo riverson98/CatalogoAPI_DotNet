@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CatalogoAPI.Controllers;
 
-[Route("[controller]")]
+[Route("api/[controller]")]
 [ApiController]
 public class ProdutosController : ControllerBase
 {
@@ -29,7 +29,7 @@ public class ProdutosController : ControllerBase
         return produtos;
     }
 
-    [HttpGet("{id:int}", Name = "ObterProduto")]
+    [HttpGet("{id:int:min(1)}", Name = "ObterProduto")]
     public ActionResult<Produto> BuscaProdutosPorId(int id)
     {
         var produto = _context.Produtos

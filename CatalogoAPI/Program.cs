@@ -10,6 +10,8 @@ builder.Services.AddControllers()
         .AddJsonOptions(options => 
             options.JsonSerializerOptions
                 .ReferenceHandler = ReferenceHandler.IgnoreCycles);
+var valor1 = builder.Configuration["chave1"];
+var valor2 = builder.Configuration["secao1:chave2"];
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

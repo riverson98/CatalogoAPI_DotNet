@@ -10,10 +10,22 @@ namespace CatalogoAPI.Controllers
     public class CategoriasController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public CategoriasController(AppDbContext context)
+        public CategoriasController(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
+        }
+
+        [HttpGet("lerArquivoConfiguracao")]
+        public string buscaValorDeConfiguracao()
+        {
+            var valor1 = _configuration["chave1"];
+            var valor2 = _configuration["chave2"];
+            var secao1 = _configuration["secao1:chave2"];
+
+            return $"Chave 1 = {valor1} \nChave 2 = {valor2} \nSeção 1 = {secao1}";
         }
 
         [HttpGet("produtos")]

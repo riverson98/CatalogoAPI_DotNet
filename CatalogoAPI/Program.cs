@@ -9,8 +9,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers()
-        .AddJsonOptions(options => 
+// Adiciona o filtro de tratamento de excecoes nao tratadas como global e permite que o json ignore objetos em ciclos
+builder.Services.AddControllers(options =>
+    options.Filters.Add(typeof(ApiExceptionFilter))
+)
+.AddJsonOptions(options => 
             options.JsonSerializerOptions
                 .ReferenceHandler = ReferenceHandler.IgnoreCycles);
 var valor1 = builder.Configuration["chave1"];

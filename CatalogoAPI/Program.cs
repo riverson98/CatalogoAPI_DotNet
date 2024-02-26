@@ -1,5 +1,6 @@
 using CatalogoAPI.Context;
-using CatalogoAPI.Models.Extensions;
+using CatalogoAPI.Extensions;
+using CatalogoAPI.Filters;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 
@@ -17,6 +18,7 @@ var valor2 = builder.Configuration["secao1:chave2"];
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<ApiLoggingFilter>();
 
 string? mySqlConnection = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>

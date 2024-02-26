@@ -1,4 +1,5 @@
 ﻿using CatalogoAPI.Context;
+using CatalogoAPI.Filters;
 using CatalogoAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -38,6 +39,7 @@ namespace CatalogoAPI.Controllers
         }
 
         [HttpGet]
+        [ServiceFilter(typeof(ApiLoggingFilter))]
         public ActionResult<IEnumerable<Categoria>> BuscaTodasAsCategorias()
         {
             var categorias = _context.Categorias.AsNoTracking().ToList();

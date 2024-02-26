@@ -2,6 +2,8 @@ using CatalogoAPI.Context;
 using CatalogoAPI.Extensions;
 using CatalogoAPI.Filters;
 using CatalogoAPI.Logging;
+using CatalogoAPI.Repositories;
+using CatalogoAPI.Repositories.Impl;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 
@@ -23,6 +25,9 @@ var valor2 = builder.Configuration["secao1:chave2"];
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddScoped<ApiLoggingFilter>();
+builder.Services.AddScoped<ICategoriaRepository, CategoriaRepositoryImpl>();
+builder.Services.AddScoped<IProdutoRepository, ProdutoRespositoryImpl>();
+builder.Services.AddScoped(typeof(IRepository<>), typeof(RepositoryImpl<>));
 
 string? mySqlConnection = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>

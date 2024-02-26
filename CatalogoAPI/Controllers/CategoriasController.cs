@@ -1,8 +1,7 @@
-﻿using CatalogoAPI.Context;
-using CatalogoAPI.Filters;
+﻿using CatalogoAPI.Filters;
 using CatalogoAPI.Models;
+using CatalogoAPI.Repositories;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace CatalogoAPI.Controllers
 {
@@ -10,13 +9,13 @@ namespace CatalogoAPI.Controllers
     [ApiController]
     public class CategoriasController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly IRepository<Categoria> _repository;
         private readonly IConfiguration _configuration;
         private readonly ILogger _logger;
 
-        public CategoriasController(AppDbContext context, IConfiguration configuration, ILogger<CategoriasController> logger)
+        public CategoriasController(IRepository<Categoria> repository, IConfiguration configuration, ILogger<CategoriasController> logger)
         {
-            _context = context;
+            _repository = repository;
             _configuration = configuration;
             _logger = logger;
         }
@@ -31,75 +30,60 @@ namespace CatalogoAPI.Controllers
             return $"Chave 1 = {valor1} \nChave 2 = {valor2} \nSeção 1 = {secao1}";
         }
 
-        [HttpGet("produtos")]
-        public async Task<ActionResult<IEnumerable<Categoria>>> BuscaTodasAsCategoriasEProdutos() 
-        {
-            _logger.LogInformation("########################### GET  api/categorias BuscaTodasAsCategoriasEProdutos  #######################################");
-            return await _context.Categorias
-                    .Include(categoria => categoria.Produtos)
-                    .Where(produto => produto.CategoriaId <= 5)
-                    .ToListAsync();
-        }
-
         [HttpGet]
         [ServiceFilter(typeof(ApiLoggingFilter))]
-        public async Task<ActionResult<IEnumerable<Categoria>>> BuscaTodasAsCategorias()
+        public ActionResult<IEnumerable<Categoria>> BuscaTodasAsCategorias()
         {
-            var categorias = await _context.Categorias.AsNoTracking().ToListAsync();
+            var categorias = _repository.BuscaTodos();
 
             if (categorias is null)
                 return NotFound("Categorias não encontradas");
 
-            return categorias;
+            return Ok(categorias);
         }
 
         [HttpGet("{id:int:min(1)}", Name = "ObterCategoria")]
-        public async Task<ActionResult<Categoria>> BuscaCategoriasPorId(int id)
+        public ActionResult<Categoria> BuscaCategoriasPorId(int id)
         {
             _logger.LogInformation($"########################### GET  api/categorias/id = {id}  #######################################");
-            var categoria = await _context.Categorias.AsNoTracking()
-                    .FirstOrDefaultAsync(categoriaSelecionada => categoriaSelecionada.CategoriaId.Equals(id));
+            var categoria = _repository.Busca(categoria => categoria.CategoriaId.Equals(id));
 
             if (categoria is null)
                 return NotFound("Categoria não encontradada...");
 
-            return categoria;
+            return Ok(categoria);
         }
 
         [HttpPost]
-        public async Task<ActionResult> CriaCategoria(Categoria categoria)
+        public ActionResult CriaCategoria(Categoria categoria)
         {
             if (categoria is null)
                 return BadRequest();
 
-            _context.Categorias.AddAsync(categoria);
-            await _context.SaveChangesAsync();
+            var categoriaCriada = _repository.Adiciona(categoria);
 
-            return new CreatedAtRouteResult("ObterCategoria", new { id = categoria.CategoriaId }, categoria);
+            return new CreatedAtRouteResult("ObterCategoria", new { id = categoriaCriada.CategoriaId }, categoriaCriada);
         }
 
         [HttpPut("{id:int}")]
-        public async Task<ActionResult> AtualizaCategoria(int id, Categoria categoria)
+        public ActionResult AtualizaCategoria(int id, Categoria categoria)
         {
             if (!id.Equals(categoria.CategoriaId))
                 return BadRequest();
 
-            _context.Entry(categoria).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
-            await _context.SaveChangesAsync();
+            _repository.Atualiza(categoria);
 
             return Ok(categoria);
         }
         [HttpDelete("{id:int}")]
-        public async Task<ActionResult> DeletaCategoriaPorId(int id)
+        public ActionResult DeletaCategoriaPorId(int id)
         {
-            var categoria = await _context.Produtos
-                    .FirstOrDefaultAsync(categoriaSelecionada => categoriaSelecionada.ProdutoId.Equals(id));
+            var categoria = _repository.Busca(categoria => categoria.CategoriaId.Equals(id));
 
             if (categoria is null)
                 return NotFound("Nenhuma categoria encontrada...");
 
-            _context.Produtos.Remove(categoria);
-            await _context.SaveChangesAsync();
+            _repository.Deleta(categoria);
 
             return Ok(categoria);
         }

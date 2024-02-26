@@ -12,11 +12,13 @@ namespace CatalogoAPI.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly ILogger _logger;
 
-        public CategoriasController(AppDbContext context, IConfiguration configuration)
+        public CategoriasController(AppDbContext context, IConfiguration configuration, ILogger<CategoriasController> logger)
         {
             _context = context;
             _configuration = configuration;
+            _logger = logger;
         }
 
         [HttpGet("lerArquivoConfiguracao")]
@@ -32,6 +34,7 @@ namespace CatalogoAPI.Controllers
         [HttpGet("produtos")]
         public ActionResult<IEnumerable<Categoria>> BuscaTodasAsCategoriasEProdutos() 
         {
+            _logger.LogInformation("########################### GET  api/categorias BuscaTodasAsCategoriasEProdutos  #######################################");
             return _context.Categorias
                     .Include(categoria => categoria.Produtos)
                     .Where(produto => produto.CategoriaId <= 5)
@@ -53,6 +56,7 @@ namespace CatalogoAPI.Controllers
         [HttpGet("{id:int:min(1)}", Name = "ObterCategoria")]
         public ActionResult<Categoria> BuscaCategoriasPorId(int id)
         {
+            _logger.LogInformation($"########################### GET  api/categorias/id = {id}  #######################################");
             var categoria = _context.Categorias.AsNoTracking()
                     .FirstOrDefault(categoriaSelecionada => categoriaSelecionada.CategoriaId.Equals(id));
 

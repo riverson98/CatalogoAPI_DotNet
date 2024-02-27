@@ -1,4 +1,6 @@
-﻿using CatalogoAPI.Filters;
+﻿using AutoMapper;
+using CatalogoAPI.DTOs;
+using CatalogoAPI.Filters;
 using CatalogoAPI.Models;
 using CatalogoAPI.Repositories;
 using Microsoft.AspNetCore.Mvc;
@@ -12,12 +14,14 @@ namespace CatalogoAPI.Controllers
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _configuration;
         private readonly ILogger _logger;
+        private readonly IMapper _mapper;
 
-        public CategoriasController(IUnitOfWork unitOfWork, IConfiguration configuration, ILogger<CategoriasController> logger)
+        public CategoriasController(IUnitOfWork unitOfWork, IConfiguration configuration, ILogger<CategoriasController> logger, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _configuration = configuration;
             _logger = logger;
+            _mapper = mapper;
         }
 
         [HttpGet("lerArquivoConfiguracao")]
@@ -32,18 +36,20 @@ namespace CatalogoAPI.Controllers
 
         [HttpGet]
         [ServiceFilter(typeof(ApiLoggingFilter))]
-        public ActionResult<IEnumerable<Categoria>> BuscaTodasAsCategorias()
+        public ActionResult<IEnumerable<CategoriaDTO>> BuscaTodasAsCategorias()
         {
             var categorias = _unitOfWork.CategoriaRepository.BuscaTodos();
 
             if (categorias is null)
                 return NotFound("Categorias não encontradas");
 
-            return Ok(categorias);
+            var categoriasDto = _mapper.Map<IEnumerable<CategoriaDTO>>(categorias);
+
+            return Ok(categoriasDto);
         }
 
         [HttpGet("{id:int:min(1)}", Name = "ObterCategoria")]
-        public ActionResult<Categoria> BuscaCategoriasPorId(int id)
+        public ActionResult<CategoriaDTO> BuscaCategoriasPorId(int id)
         {
             _logger.LogInformation($"########################### GET  api/categorias/id = {id}  #######################################");
             var categoria = _unitOfWork.CategoriaRepository.Busca(categoria => categoria.CategoriaId.Equals(id));
@@ -51,44 +57,58 @@ namespace CatalogoAPI.Controllers
             if (categoria is null)
                 return NotFound("Categoria não encontradada...");
 
-            return Ok(categoria);
+            var categoriaDto = _mapper.Map<CategoriaDTO>(categoria);
+
+            return Ok(categoriaDto);
         }
 
         [HttpPost]
-        public ActionResult CriaCategoria(Categoria categoria)
+        public ActionResult<CategoriaDTO> CriaCategoria(CategoriaDTO categoriaDto)
         {
-            if (categoria is null)
+            if (categoriaDto is null)
                 return BadRequest();
+
+
+            var categoria = _mapper.Map<Categoria>(categoriaDto);
 
             var categoriaCriada = _unitOfWork.CategoriaRepository.Adiciona(categoria);
             _unitOfWork.Commit();
 
-            return new CreatedAtRouteResult("ObterCategoria", new { id = categoriaCriada.CategoriaId }, categoriaCriada);
+            var novaCategoriaDto = _mapper.Map<CategoriaDTO>(categoriaCriada);
+
+            return new CreatedAtRouteResult("ObterCategoria", new { id = novaCategoriaDto.CategoriaId }, novaCategoriaDto);
         }
 
         [HttpPut("{id:int}")]
-        public ActionResult AtualizaCategoria(int id, Categoria categoria)
+        public ActionResult<CategoriaDTO> AtualizaCategoria(int id, CategoriaDTO categoriaDto)
         {
-            if (!id.Equals(categoria.CategoriaId))
+            if (!id.Equals(categoriaDto.CategoriaId))
                 return BadRequest();
 
-            _unitOfWork.CategoriaRepository.Atualiza(categoria);
+            var categoria = _mapper.Map<Categoria>(categoriaDto);
+
+            var categoriaAtualizada = _unitOfWork.CategoriaRepository.Atualiza(categoria);
             _unitOfWork.Commit();
 
-            return Ok(categoria);
+            var categoriaAtualizadaDto = _mapper.Map<CategoriaDTO>(categoriaAtualizada);
+
+            return Ok(categoriaAtualizadaDto);
         }
+
         [HttpDelete("{id:int}")]
-        public ActionResult DeletaCategoriaPorId(int id)
+        public ActionResult<CategoriaDTO> DeletaCategoriaPorId(int id)
         {
             var categoria = _unitOfWork.CategoriaRepository.Busca(categoria => categoria.CategoriaId.Equals(id));
 
             if (categoria is null)
                 return NotFound("Nenhuma categoria encontrada...");
 
-            _unitOfWork.CategoriaRepository.Deleta(categoria);
+            var categoriaExcluida = _unitOfWork.CategoriaRepository.Deleta(categoria);
             _unitOfWork.Commit();
 
-            return Ok(categoria);
+            var categoriaExcluidaDto = _mapper.Map<CategoriaDTO>(categoriaExcluida);
+
+            return Ok(categoriaExcluidaDto);
         }
     }
 }

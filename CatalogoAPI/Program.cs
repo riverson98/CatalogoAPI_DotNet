@@ -28,6 +28,7 @@ builder.Services.AddScoped<ApiLoggingFilter>();
 builder.Services.AddScoped<ICategoriaRepository, CategoriaRepositoryImpl>();
 builder.Services.AddScoped<IProdutoRepository, ProdutoRespositoryImpl>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(RepositoryImpl<>));
+builder.Services.AddScoped<IUnitOfWork, UnitOfWorkImpl>();
 
 string? mySqlConnection = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>

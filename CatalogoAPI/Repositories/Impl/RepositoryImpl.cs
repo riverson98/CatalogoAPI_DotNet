@@ -1,5 +1,6 @@
 ﻿
 using CatalogoAPI.Context;
+using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
 namespace CatalogoAPI.Repositories.Impl;
@@ -15,7 +16,7 @@ public class RepositoryImpl<T> : IRepository<T> where T : class
     
     public IEnumerable<T> BuscaTodos()
     {
-        return _context.Set<T>().ToList();
+        return _context.Set<T>().AsNoTracking().ToList();
     }
 
     public T Busca(Expression<Func<T, bool>> predicate)
@@ -26,21 +27,18 @@ public class RepositoryImpl<T> : IRepository<T> where T : class
     public T Adiciona(T entidade)
     {
         _context.Add(entidade);
-        _context.SaveChanges();
         return entidade;
     }
 
     public T Atualiza(T entidade)
     {
         _context.Set<T>().Update(entidade);
-        _context.SaveChanges();
         return entidade;
     }
 
     public T Deleta(T entidade)
     {
         _context.Set<T>().Remove(entidade);
-        _context.SaveChanges();
         return entidade;
     }
 }

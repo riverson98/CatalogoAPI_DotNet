@@ -18,7 +18,8 @@ builder.Services.AddControllers(options =>
 )
 .AddJsonOptions(options => 
             options.JsonSerializerOptions
-                .ReferenceHandler = ReferenceHandler.IgnoreCycles);
+                .ReferenceHandler = ReferenceHandler.IgnoreCycles)
+.AddNewtonsoftJson();
 var valor1 = builder.Configuration["chave1"];
 var valor2 = builder.Configuration["secao1:chave2"];
 

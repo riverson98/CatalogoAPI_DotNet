@@ -2,6 +2,7 @@
 using CatalogoAPI.DTOs;
 using CatalogoAPI.Models;
 using CatalogoAPI.Repositories;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CatalogoAPI.Controllers;
@@ -23,12 +24,12 @@ public class ProdutosController : ControllerBase
     public ActionResult<IEnumerable<ProdutoDTO>> BuscaTodosOsProdutos()
     {
         var produtos = _unitOfWork.ProdutoRepository.BuscaTodos();
-        
+
         if (produtos is null)
             return NotFound("Produtos não encontrados");
 
-        var produtosDto = _mapper.Map<ProdutoDTO>(produtos);
-        
+        var produtosDto = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
+
         return Ok(produtosDto);
     }
 
@@ -36,12 +37,12 @@ public class ProdutosController : ControllerBase
     public ActionResult<IEnumerable<ProdutoDTO>> BuscaTodosOsProdutosPorCategoria(int id)
     {
         var produtos = _unitOfWork.ProdutoRepository.BuscaProdutosPorCategoria(id);
-        
+
         if (produtos is null)
             return NotFound("Nenhum produto encontrado nesta categoria");
 
         var produtosDto = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
-        
+
         return Ok(produtosDto);
     }
 
@@ -72,6 +73,32 @@ public class ProdutosController : ControllerBase
         var produtoCriadoDto = _mapper.Map<ProdutoDTO>(produtoCriado);
 
         return new CreatedAtRouteResult("ObterProduto", new { id = produtoCriadoDto.ProdutoId }, produtoCriadoDto);
+    }
+
+    [HttpPatch("{id:int}/AtualizaParcialmente")]
+    public ActionResult<ProdutoDTOUpdateResponse> AtualizaParcialmente(int id, 
+        JsonPatchDocument<ProdutoDTOUpdateRequest> produtoRequestDto)
+    {
+        if(produtoRequestDto is null || id <= 0)
+            return BadRequest();
+
+        var produto = _unitOfWork.ProdutoRepository.Busca(produto => produto.ProdutoId.Equals(id));
+
+        if(produto is null)
+            return NotFound();
+
+        var produtoAtualizadoRequest = _mapper.Map<ProdutoDTOUpdateRequest>(produto);
+
+        produtoRequestDto.ApplyTo(produtoAtualizadoRequest, ModelState);
+
+        if(!ModelState.IsValid || TryValidateModel(produtoAtualizadoRequest))
+            return BadRequest(ModelState);
+        
+        _mapper.Map(produtoAtualizadoRequest, produto);
+        _unitOfWork.ProdutoRepository.Atualiza(produto);
+        _unitOfWork.Commit();
+
+        return Ok(_mapper.Map<ProdutoDTOUpdateResponse>(produto));
     }
 
     [HttpPut("{id:int}")]

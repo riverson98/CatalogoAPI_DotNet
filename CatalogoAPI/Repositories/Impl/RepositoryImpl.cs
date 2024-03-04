@@ -1,5 +1,4 @@
-﻿
-using CatalogoAPI.Context;
+﻿using CatalogoAPI.Context;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 

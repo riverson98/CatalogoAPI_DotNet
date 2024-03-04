@@ -2,8 +2,10 @@
 using CatalogoAPI.DTOs;
 using CatalogoAPI.Filters;
 using CatalogoAPI.Models;
+using CatalogoAPI.Pagination;
 using CatalogoAPI.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace CatalogoAPI.Controllers
 {
@@ -46,6 +48,29 @@ namespace CatalogoAPI.Controllers
             var categoriasDto = _mapper.Map<IEnumerable<CategoriaDTO>>(categorias);
 
             return Ok(categoriasDto);
+        }
+
+        [HttpGet("paginacao")]
+        public ActionResult<IEnumerable<CategoriaDTO>> BuscaTodosAsCategoriasComPaginacao([FromQuery] 
+                                                                                       ParametrosDePaginacaoDasCategorias paginacao)
+        {
+            var categorias = _unitOfWork.CategoriaRepository.BuscaTodasAsCategoriasComPaginacao(paginacao);
+
+            var metadata = new
+            {
+                categorias.TotalDeElementos,
+                categorias.ItensPorPagina,
+                categorias.PaginaAtual,
+                categorias.TotalDePagina,
+                categorias.PossuiPaginaPosterior,
+                categorias.PossuiPaginaAnterior
+            };
+
+            Response.Headers.Append("X-Paginacao", JsonConvert.SerializeObject(metadata));
+
+            var CategoriasDto = _mapper.Map<IEnumerable<CategoriaDTO>>(categorias);
+
+            return Ok(CategoriasDto);
         }
 
         [HttpGet("{id:int:min(1)}", Name = "ObterCategoria")]

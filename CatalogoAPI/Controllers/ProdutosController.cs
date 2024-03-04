@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
 using CatalogoAPI.DTOs;
 using CatalogoAPI.Models;
+using CatalogoAPI.Pagination;
 using CatalogoAPI.Repositories;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 
 namespace CatalogoAPI.Controllers;
 
@@ -40,6 +42,28 @@ public class ProdutosController : ControllerBase
 
         if (produtos is null)
             return NotFound("Nenhum produto encontrado nesta categoria");
+
+        var produtosDto = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
+
+        return Ok(produtosDto);
+    }
+
+    [HttpGet("paginacao")]
+    public ActionResult<IEnumerable<ProdutoDTO>> BuscaTodosOsProdutosComPaginacao([FromQuery] ParametrosDePaginacaoDosProdutos paginacao)
+    {
+        var produtos = _unitOfWork.ProdutoRepository.BuscaTodosOsProdutosComPaginacao(paginacao);
+
+        var metadata = new
+        {
+            produtos.TotalDeElementos,
+            produtos.ItensPorPagina,
+            produtos.PaginaAtual,
+            produtos.TotalDePagina,
+            produtos.PossuiPaginaPosterior,
+            produtos.PossuiPaginaAnterior
+        };
+
+        Response.Headers.Append("X-Paginacao", JsonConvert.SerializeObject(metadata));
 
         var produtosDto = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
 

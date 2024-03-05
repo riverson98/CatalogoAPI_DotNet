@@ -53,24 +53,16 @@ namespace CatalogoAPI.Controllers
         [HttpGet("paginacao")]
         public ActionResult<IEnumerable<CategoriaDTO>> BuscaTodosAsCategoriasComPaginacao([FromQuery] 
                                                                                        ParametrosDePaginacaoDasCategorias paginacao)
-        {
+        { 
             var categorias = _unitOfWork.CategoriaRepository.BuscaTodasAsCategoriasComPaginacao(paginacao);
+            return ObtemCategorias(categorias);
+        }
 
-            var metadata = new
-            {
-                categorias.TotalDeElementos,
-                categorias.ItensPorPagina,
-                categorias.PaginaAtual,
-                categorias.TotalDePagina,
-                categorias.PossuiPaginaPosterior,
-                categorias.PossuiPaginaAnterior
-            };
-
-            Response.Headers.Append("X-Paginacao", JsonConvert.SerializeObject(metadata));
-
-            var CategoriasDto = _mapper.Map<IEnumerable<CategoriaDTO>>(categorias);
-
-            return Ok(CategoriasDto);
+        [HttpGet("filtro/nome/paginacao")]
+        public ActionResult<IEnumerable<CategoriaDTO>> BuscaCategoriasFiltradas([FromQuery] CategoriasFiltroNome filtro)
+        {
+            var categoriasFiltradas = _unitOfWork.CategoriaRepository.FiltraCategoriaPorNome(filtro);
+            return ObtemCategorias(categoriasFiltradas);
         }
 
         [HttpGet("{id:int:min(1)}", Name = "ObterCategoria")]
@@ -134,6 +126,25 @@ namespace CatalogoAPI.Controllers
             var categoriaExcluidaDto = _mapper.Map<CategoriaDTO>(categoriaExcluida);
 
             return Ok(categoriaExcluidaDto);
+        }
+
+        private ActionResult<IEnumerable<CategoriaDTO>> ObtemCategorias(ListaPaginada<Categoria> categorias)
+        {
+            var metadata = new
+            {
+                categorias.TotalDeElementos,
+                categorias.ItensPorPagina,
+                categorias.PaginaAtual,
+                categorias.TotalDePagina,
+                categorias.PossuiPaginaPosterior,
+                categorias.PossuiPaginaAnterior
+            };
+
+            Response.Headers.Append("X-Paginacao", JsonConvert.SerializeObject(metadata));
+
+            var CategoriasDto = _mapper.Map<IEnumerable<CategoriaDTO>>(categorias);
+
+            return Ok(CategoriasDto);
         }
     }
 }

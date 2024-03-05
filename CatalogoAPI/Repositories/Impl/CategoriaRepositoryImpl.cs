@@ -16,4 +16,16 @@ public class CategoriaRepositoryImpl : RepositoryImpl<Categoria>, ICategoriaRepo
         return ListaPaginada<Categoria>.ParaListaPaginada(categorias, parametrosDePaginacao.NumeroDaPagina,
                                                           parametrosDePaginacao.QuantidadeDeItensPorPagina);
     }
+
+    public ListaPaginada<Categoria> FiltraCategoriaPorNome(CategoriasFiltroNome filtro)
+    {
+        var categorias = BuscaTodos().AsQueryable();
+
+        if (!string.IsNullOrEmpty(filtro.Nome))
+            categorias = categorias.Where(categoriaFiltrada => categoriaFiltrada.Nome.Contains(filtro.Nome));
+
+        var categoriasFiltradas = ListaPaginada<Categoria>.ParaListaPaginada(categorias, filtro.NumeroDaPagina,
+                                                                                filtro.QuantidadeDeItensPorPagina);
+        return categoriasFiltradas;
+    }
 }

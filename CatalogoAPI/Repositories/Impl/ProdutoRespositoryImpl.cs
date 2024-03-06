@@ -1,6 +1,7 @@
 ﻿using CatalogoAPI.Context;
 using CatalogoAPI.Models;
 using CatalogoAPI.Pagination;
+using X.PagedList;
 
 namespace CatalogoAPI.Repositories.Impl;
 
@@ -10,24 +11,26 @@ public class ProdutoRespositoryImpl : RepositoryImpl<Produto>, IProdutoRepositor
     {
     }
 
-    public IEnumerable<Produto> BuscaProdutosPorCategoria(int id)
+    public async Task<IEnumerable<Produto>> BuscaProdutosPorCategoriaAsync(int id)
     {
-        return BuscaTodos().Where(categoria => categoria.CategoriaId.Equals(id));
+        var produtos = await BuscaTodosAsync();
+
+        return produtos.Where(categoria => categoria.CategoriaId.Equals(id));
     }
 
-    public ListaPaginada<Produto> BuscaTodosOsProdutosComPaginacao(ParametrosDePaginacaoDosProdutos parametrosDePaginacao)
+    public async Task<IPagedList<Produto>> BuscaTodosOsProdutosComPaginacaoAsync(ParametrosDePaginacaoDosProdutos parametrosDePaginacao)
     {
-        var produtos = BuscaTodos()
-            .OrderBy(produto => produto.ProdutoId)
-            .AsQueryable();
+        var produtos = await BuscaTodosAsync();
+        var produtosOrdenados = produtos.OrderBy(produto => produto.ProdutoId).AsQueryable();
 
-        return ListaPaginada<Produto>.ParaListaPaginada(produtos, parametrosDePaginacao.NumeroDaPagina,
-                                                                        parametrosDePaginacao.QuantidadeDeItensPorPagina);
+        var produtosPaginados = await produtosOrdenados.ToPagedListAsync(parametrosDePaginacao.NumeroDaPagina,
+                                                                    parametrosDePaginacao.QuantidadeDeItensPorPagina);
+        return produtosPaginados;
     }
 
-    public ListaPaginada<Produto> FiltraProdutosPorPreco(ProdutosFiltroPreco filtro)
+    public async Task<IPagedList<Produto>> FiltraProdutosPorPrecoAsync(ProdutosFiltroPreco filtro)
     {
-        var produtos = BuscaTodos().AsQueryable();
+        var produtos = await BuscaTodosAsync();
         if(filtro.Preco.HasValue && !string.IsNullOrEmpty(filtro.PrecoCriterio))
         {
             if (filtro.PrecoCriterio.Equals("maior", StringComparison.OrdinalIgnoreCase))
@@ -43,8 +46,7 @@ public class ProdutoRespositoryImpl : RepositoryImpl<Produto>, IProdutoRepositor
                                         .OrderBy(produto => produto.Preco);
         }
 
-        var produtosFiltrados = ListaPaginada<Produto>.ParaListaPaginada(produtos, filtro.NumeroDaPagina,
-                                                                                        filtro.QuantidadeDeItensPorPagina);
-        return produtosFiltrados;
+        var produtosPaginados = await produtos.ToPagedListAsync(filtro.NumeroDaPagina, filtro.QuantidadeDeItensPorPagina);
+        return produtosPaginados;
     }
 }

@@ -6,6 +6,7 @@ using CatalogoAPI.Repositories;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using X.PagedList;
 
 namespace CatalogoAPI.Controllers;
 
@@ -23,9 +24,9 @@ public class ProdutosController : ControllerBase
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<ProdutoDTO>> BuscaTodosOsProdutos()
+    public async Task<ActionResult<IEnumerable<ProdutoDTO>>> BuscaTodosOsProdutos()
     {
-        var produtos = _unitOfWork.ProdutoRepository.BuscaTodos();
+        var produtos = await _unitOfWork.ProdutoRepository.BuscaTodosAsync();
 
         if (produtos is null)
             return NotFound("Produtos não encontrados");
@@ -36,9 +37,9 @@ public class ProdutosController : ControllerBase
     }
 
     [HttpGet("categoria/{id:int}")]
-    public ActionResult<IEnumerable<ProdutoDTO>> BuscaTodosOsProdutosPorCategoria(int id)
+    public async Task<ActionResult<IEnumerable<ProdutoDTO>>> BuscaTodosOsProdutosPorCategoria(int id)
     {
-        var produtos = _unitOfWork.ProdutoRepository.BuscaProdutosPorCategoria(id);
+        var produtos = await _unitOfWork.ProdutoRepository.BuscaProdutosPorCategoriaAsync(id);
 
         if (produtos is null)
             return NotFound("Nenhum produto encontrado nesta categoria");
@@ -49,23 +50,23 @@ public class ProdutosController : ControllerBase
     }
 
     [HttpGet("paginacao")]
-    public ActionResult<IEnumerable<ProdutoDTO>> BuscaTodosOsProdutosComPaginacao([FromQuery] ParametrosDePaginacaoDosProdutos paginacao)
+    public async Task<ActionResult<IEnumerable<ProdutoDTO>>> BuscaTodosOsProdutosComPaginacao([FromQuery] ParametrosDePaginacaoDosProdutos paginacao)
     {
-        var produtos = _unitOfWork.ProdutoRepository.BuscaTodosOsProdutosComPaginacao(paginacao);
+        var produtos = await _unitOfWork.ProdutoRepository.BuscaTodosOsProdutosComPaginacaoAsync(paginacao);
         return ObtemProdutos(produtos);
     }
 
     [HttpGet("filtro/preco/paginacao")]
-    public ActionResult<IEnumerable<ProdutoDTO>> BuscaProdutosComFiltroBaseadoNoPreco([FromQuery] ProdutosFiltroPreco filtro)
+    public async Task<ActionResult<IEnumerable<ProdutoDTO>>> BuscaProdutosComFiltroBaseadoNoPreco([FromQuery] ProdutosFiltroPreco filtro)
     {
-        var produtos = _unitOfWork.ProdutoRepository.FiltraProdutosPorPreco(filtro);
+        var produtos = await _unitOfWork.ProdutoRepository.FiltraProdutosPorPrecoAsync(filtro);
         return ObtemProdutos(produtos);
     }
 
     [HttpGet("{id:int:min(1)}", Name = "ObterProduto")]
-    public ActionResult<ProdutoDTO> BuscaProdutosPorId(int id)
+    public async Task<ActionResult<ProdutoDTO>> BuscaProdutosPorId(int id)
     {
-        var produto = _unitOfWork.ProdutoRepository.Busca(produto => produto.ProdutoId.Equals(id));
+        var produto = await _unitOfWork.ProdutoRepository.BuscaAsync(produto => produto.ProdutoId.Equals(id));
 
         if (produto is null)
             return NotFound("Produto não encontrado...");
@@ -76,7 +77,7 @@ public class ProdutosController : ControllerBase
     }
 
     [HttpPost]
-    public ActionResult<ProdutoDTO> CriaProduto(ProdutoDTO produtoDto)
+    public async Task<ActionResult<ProdutoDTO>> CriaProduto(ProdutoDTO produtoDto)
     {
         if (produtoDto is null)
             return BadRequest();
@@ -84,7 +85,7 @@ public class ProdutosController : ControllerBase
         var produto = _mapper.Map<Produto>(produtoDto);
 
         var produtoCriado = _unitOfWork.ProdutoRepository.Adiciona(produto);
-        _unitOfWork.Commit();
+        await _unitOfWork.CommitAsync();
 
         var produtoCriadoDto = _mapper.Map<ProdutoDTO>(produtoCriado);
 
@@ -92,13 +93,13 @@ public class ProdutosController : ControllerBase
     }
 
     [HttpPatch("{id:int}/AtualizaParcialmente")]
-    public ActionResult<ProdutoDTOUpdateResponse> AtualizaParcialmente(int id, 
+    public async Task<ActionResult<ProdutoDTOUpdateResponse>> AtualizaParcialmente(int id, 
         JsonPatchDocument<ProdutoDTOUpdateRequest> produtoRequestDto)
     {
         if(produtoRequestDto is null || id <= 0)
             return BadRequest();
 
-        var produto = _unitOfWork.ProdutoRepository.Busca(produto => produto.ProdutoId.Equals(id));
+        var produto = await _unitOfWork.ProdutoRepository.BuscaAsync(produto => produto.ProdutoId.Equals(id));
 
         if(produto is null)
             return NotFound();
@@ -112,13 +113,13 @@ public class ProdutosController : ControllerBase
         
         _mapper.Map(produtoAtualizadoRequest, produto);
         _unitOfWork.ProdutoRepository.Atualiza(produto);
-        _unitOfWork.Commit();
+        await _unitOfWork.CommitAsync();
 
         return Ok(_mapper.Map<ProdutoDTOUpdateResponse>(produto));
     }
 
     [HttpPut("{id:int}")]
-    public ActionResult<ProdutoDTO> AtualizaProduto(int id, ProdutoDTO produtoDto)
+    public async Task<ActionResult<ProdutoDTO>> AtualizaProduto(int id, ProdutoDTO produtoDto)
     {
         if(!id.Equals(produtoDto.ProdutoId))
             return BadRequest();
@@ -126,7 +127,7 @@ public class ProdutosController : ControllerBase
         var produto = _mapper.Map<Produto>(produtoDto);
 
         var produtoAtualizado = _unitOfWork.ProdutoRepository.Atualiza(produto);
-        _unitOfWork.Commit();
+        await _unitOfWork.CommitAsync();
 
         var produtoAtualizadoDto = _mapper.Map<ProdutoDTO>(produtoAtualizado);
 
@@ -134,31 +135,31 @@ public class ProdutosController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    public ActionResult<ProdutoDTO> DeletaProdutoPorId(int id)
+    public async Task<ActionResult<ProdutoDTO>> DeletaProdutoPorId(int id)
     {
-        var produto = _unitOfWork.ProdutoRepository.Busca(produto => produto.ProdutoId.Equals(id));
+        var produto = await _unitOfWork.ProdutoRepository.BuscaAsync(produto => produto.ProdutoId.Equals(id));
 
         if (produto is null)
             return NotFound("Nenhum produto encontrado ...");
 
         var produtoExcluido = _unitOfWork.ProdutoRepository.Deleta(produto);
-        _unitOfWork.Commit();
+        await _unitOfWork.CommitAsync();
 
         var produtoExcluidoDto = _mapper.Map<ProdutoDTO>(produtoExcluido);
 
         return Ok(produtoExcluidoDto);
     }
 
-    private ActionResult<IEnumerable<ProdutoDTO>> ObtemProdutos(ListaPaginada<Produto> produtos)
+    private ActionResult<IEnumerable<ProdutoDTO>> ObtemProdutos(IPagedList<Produto> produtos)
     {
         var metadata = new
         {
-            produtos.TotalDeElementos,
-            produtos.ItensPorPagina,
-            produtos.PaginaAtual,
-            produtos.TotalDePagina,
-            produtos.PossuiPaginaPosterior,
-            produtos.PossuiPaginaAnterior
+            produtos.Count,
+            produtos.PageSize,
+            produtos.PageCount,
+            produtos.TotalItemCount,
+            produtos.HasNextPage,
+            produtos.HasPreviousPage
         };
         Response.Headers.Append("X-Paginacao", JsonConvert.SerializeObject(metadata));
         var produtosDto = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);

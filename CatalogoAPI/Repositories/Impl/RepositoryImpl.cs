@@ -13,14 +13,14 @@ public class RepositoryImpl<T> : IRepository<T> where T : class
         _context = context;
     }
     
-    public IEnumerable<T> BuscaTodos()
+    public async Task<IEnumerable<T>> BuscaTodosAsync()
     {
-        return _context.Set<T>().AsNoTracking().ToList();
+        return await _context.Set<T>().AsNoTracking().ToListAsync();
     }
 
-    public T Busca(Expression<Func<T, bool>> predicate)
+    public async Task<T?> BuscaAsync(Expression<Func<T, bool>> predicate)
     {
-        return _context.Set<T>().FirstOrDefault(predicate);
+        return await _context.Set<T>().FirstOrDefaultAsync(predicate);
     }
 
     public T Adiciona(T entidade)

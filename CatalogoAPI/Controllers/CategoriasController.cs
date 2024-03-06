@@ -6,6 +6,7 @@ using CatalogoAPI.Pagination;
 using CatalogoAPI.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using X.PagedList;
 
 namespace CatalogoAPI.Controllers
 {
@@ -38,9 +39,9 @@ namespace CatalogoAPI.Controllers
 
         [HttpGet]
         [ServiceFilter(typeof(ApiLoggingFilter))]
-        public ActionResult<IEnumerable<CategoriaDTO>> BuscaTodasAsCategorias()
+        public async Task<ActionResult<IEnumerable<CategoriaDTO>>> BuscaTodasAsCategorias()
         {
-            var categorias = _unitOfWork.CategoriaRepository.BuscaTodos();
+            var categorias = await _unitOfWork.CategoriaRepository.BuscaTodosAsync();
 
             if (categorias is null)
                 return NotFound("Categorias não encontradas");
@@ -51,25 +52,25 @@ namespace CatalogoAPI.Controllers
         }
 
         [HttpGet("paginacao")]
-        public ActionResult<IEnumerable<CategoriaDTO>> BuscaTodosAsCategoriasComPaginacao([FromQuery] 
+        public async Task<ActionResult<IEnumerable<CategoriaDTO>>> BuscaTodosAsCategoriasComPaginacao([FromQuery] 
                                                                                        ParametrosDePaginacaoDasCategorias paginacao)
         { 
-            var categorias = _unitOfWork.CategoriaRepository.BuscaTodasAsCategoriasComPaginacao(paginacao);
+            var categorias = await _unitOfWork.CategoriaRepository.BuscaTodasAsCategoriasComPaginacaoAsync(paginacao);
             return ObtemCategorias(categorias);
         }
 
         [HttpGet("filtro/nome/paginacao")]
-        public ActionResult<IEnumerable<CategoriaDTO>> BuscaCategoriasFiltradas([FromQuery] CategoriasFiltroNome filtro)
+        public async Task<ActionResult<IEnumerable<CategoriaDTO>>> BuscaCategoriasFiltradas([FromQuery] CategoriasFiltroNome filtro)
         {
-            var categoriasFiltradas = _unitOfWork.CategoriaRepository.FiltraCategoriaPorNome(filtro);
+            var categoriasFiltradas = await _unitOfWork.CategoriaRepository.FiltraCategoriaPorNomeAsync(filtro);
             return ObtemCategorias(categoriasFiltradas);
         }
 
         [HttpGet("{id:int:min(1)}", Name = "ObterCategoria")]
-        public ActionResult<CategoriaDTO> BuscaCategoriasPorId(int id)
+        public async Task<ActionResult<CategoriaDTO>> BuscaCategoriasPorId(int id)
         {
             _logger.LogInformation($"########################### GET  api/categorias/id = {id}  #######################################");
-            var categoria = _unitOfWork.CategoriaRepository.Busca(categoria => categoria.CategoriaId.Equals(id));
+            var categoria = await _unitOfWork.CategoriaRepository.BuscaAsync(categoria => categoria.CategoriaId.Equals(id));
 
             if (categoria is null)
                 return NotFound("Categoria não encontradada...");
@@ -80,7 +81,7 @@ namespace CatalogoAPI.Controllers
         }
 
         [HttpPost]
-        public ActionResult<CategoriaDTO> CriaCategoria(CategoriaDTO categoriaDto)
+        public async Task<ActionResult<CategoriaDTO>> CriaCategoria(CategoriaDTO categoriaDto)
         {
             if (categoriaDto is null)
                 return BadRequest();
@@ -89,7 +90,7 @@ namespace CatalogoAPI.Controllers
             var categoria = _mapper.Map<Categoria>(categoriaDto);
 
             var categoriaCriada = _unitOfWork.CategoriaRepository.Adiciona(categoria);
-            _unitOfWork.Commit();
+            await _unitOfWork.CommitAsync();
 
             var novaCategoriaDto = _mapper.Map<CategoriaDTO>(categoriaCriada);
 
@@ -97,7 +98,7 @@ namespace CatalogoAPI.Controllers
         }
 
         [HttpPut("{id:int}")]
-        public ActionResult<CategoriaDTO> AtualizaCategoria(int id, CategoriaDTO categoriaDto)
+        public async Task<ActionResult<CategoriaDTO>> AtualizaCategoria(int id, CategoriaDTO categoriaDto)
         {
             if (!id.Equals(categoriaDto.CategoriaId))
                 return BadRequest();
@@ -105,7 +106,7 @@ namespace CatalogoAPI.Controllers
             var categoria = _mapper.Map<Categoria>(categoriaDto);
 
             var categoriaAtualizada = _unitOfWork.CategoriaRepository.Atualiza(categoria);
-            _unitOfWork.Commit();
+            await _unitOfWork.CommitAsync();
 
             var categoriaAtualizadaDto = _mapper.Map<CategoriaDTO>(categoriaAtualizada);
 
@@ -113,31 +114,31 @@ namespace CatalogoAPI.Controllers
         }
 
         [HttpDelete("{id:int}")]
-        public ActionResult<CategoriaDTO> DeletaCategoriaPorId(int id)
+        public async Task<ActionResult<CategoriaDTO>> DeletaCategoriaPorId(int id)
         {
-            var categoria = _unitOfWork.CategoriaRepository.Busca(categoria => categoria.CategoriaId.Equals(id));
+            var categoria = await _unitOfWork.CategoriaRepository.BuscaAsync(categoria => categoria.CategoriaId.Equals(id));
 
             if (categoria is null)
                 return NotFound("Nenhuma categoria encontrada...");
 
             var categoriaExcluida = _unitOfWork.CategoriaRepository.Deleta(categoria);
-            _unitOfWork.Commit();
+            await _unitOfWork.CommitAsync();
 
             var categoriaExcluidaDto = _mapper.Map<CategoriaDTO>(categoriaExcluida);
 
             return Ok(categoriaExcluidaDto);
         }
 
-        private ActionResult<IEnumerable<CategoriaDTO>> ObtemCategorias(ListaPaginada<Categoria> categorias)
+        private ActionResult<IEnumerable<CategoriaDTO>> ObtemCategorias(IPagedList<Categoria> categorias)
         {
             var metadata = new
             {
-                categorias.TotalDeElementos,
-                categorias.ItensPorPagina,
-                categorias.PaginaAtual,
-                categorias.TotalDePagina,
-                categorias.PossuiPaginaPosterior,
-                categorias.PossuiPaginaAnterior
+                categorias.Count,
+                categorias.PageSize,
+                categorias.PageCount,
+                categorias.TotalItemCount,
+                categorias.HasNextPage,
+                categorias.HasPreviousPage
             };
 
             Response.Headers.Append("X-Paginacao", JsonConvert.SerializeObject(metadata));

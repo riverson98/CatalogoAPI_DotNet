@@ -4,6 +4,7 @@ using CatalogoAPI.Filters;
 using CatalogoAPI.Models;
 using CatalogoAPI.Pagination;
 using CatalogoAPI.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using X.PagedList;
@@ -39,6 +40,7 @@ namespace CatalogoAPI.Controllers
 
         [HttpGet]
         [ServiceFilter(typeof(ApiLoggingFilter))]
+        [Authorize]
         public async Task<ActionResult<IEnumerable<CategoriaDTO>>> BuscaTodasAsCategorias()
         {
             var categorias = await _unitOfWork.CategoriaRepository.BuscaTodosAsync();

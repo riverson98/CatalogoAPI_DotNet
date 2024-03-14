@@ -3,6 +3,7 @@ using CatalogoAPI.DTOs;
 using CatalogoAPI.Models;
 using CatalogoAPI.Pagination;
 using CatalogoAPI.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
@@ -23,6 +24,7 @@ public class ProdutosController : ControllerBase
         _mapper = mapper;
     }
 
+    [Authorize(AuthenticationSchemes = "Bearer", Policy = "UserOnly")]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> BuscaTodosOsProdutos()
     {
@@ -135,6 +137,7 @@ public class ProdutosController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(AuthenticationSchemes = "Bearer", Policy = "AdminOnly")]
     public async Task<ActionResult<ProdutoDTO>> DeletaProdutoPorId(int id)
     {
         var produto = await _unitOfWork.ProdutoRepository.BuscaAsync(produto => produto.ProdutoId.Equals(id));

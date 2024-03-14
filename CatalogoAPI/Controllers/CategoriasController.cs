@@ -38,9 +38,8 @@ namespace CatalogoAPI.Controllers
             return $"Chave 1 = {valor1} \nChave 2 = {valor2} \nSeção 1 = {secao1}";
         }
 
+        [Authorize(AuthenticationSchemes = "Bearer")]
         [HttpGet]
-        [ServiceFilter(typeof(ApiLoggingFilter))]
-        [Authorize]
         public async Task<ActionResult<IEnumerable<CategoriaDTO>>> BuscaTodasAsCategorias()
         {
             var categorias = await _unitOfWork.CategoriaRepository.BuscaTodosAsync();
@@ -116,6 +115,7 @@ namespace CatalogoAPI.Controllers
         }
 
         [HttpDelete("{id:int}")]
+        [Authorize(Policy = "AdminOnly")]
         public async Task<ActionResult<CategoriaDTO>> DeletaCategoriaPorId(int id)
         {
             var categoria = await _unitOfWork.CategoriaRepository.BuscaAsync(categoria => categoria.CategoriaId.Equals(id));

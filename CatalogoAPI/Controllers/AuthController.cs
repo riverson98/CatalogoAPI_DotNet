@@ -17,14 +17,16 @@ public class AuthController : ControllerBase
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly IConfiguration _config;
+    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(ITokenService tokenService, UserManager<ApplicationUser> userManager, 
-                            RoleManager<IdentityRole> roleManager, IConfiguration config)
+    public AuthController(ITokenService tokenService, UserManager<ApplicationUser> userManager,
+                            RoleManager<IdentityRole> roleManager, IConfiguration config, ILogger<AuthController> logger)
     {
         _tokenService = tokenService;
         _userManager = userManager;
         _roleManager = roleManager;
         _config = config;
+        _logger = logger;
     }
 
     [HttpPost]
@@ -40,6 +42,7 @@ public class AuthController : ControllerBase
             {
                 new Claim(ClaimTypes.Name, user.UserName!),
                 new Claim(ClaimTypes.Email, user.Email!),
+                new Claim("id", user.UserName!),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             };
             foreach (var userRole in userRoles)
@@ -72,7 +75,7 @@ public class AuthController : ControllerBase
         var userExist = await _userManager.FindByNameAsync(dto.Username!);
         if (userExist is not null)
             return StatusCode(StatusCodes.Status500InternalServerError,
-                        new ResponseTokenDTO {Status = "Error", Message = "User already exists!"});
+                        new Response {Status = "Error", Message = "User already exists!"});
 
         ApplicationUser user = new()
         {
@@ -83,9 +86,9 @@ public class AuthController : ControllerBase
         var result = await _userManager.CreateAsync(user, dto.Password!);
         if (!result.Succeeded)
             return StatusCode(StatusCodes.Status500InternalServerError,
-                    new ResponseTokenDTO { Status = "Error", Message = "User creation failed." });
+                    new Response { Status = "Error", Message = "User creation failed." });
 
-        return Ok(new ResponseTokenDTO { Status = "Success", Message = "User created successfully!"});
+        return Ok(new Response { Status = "Success", Message = "User created successfully!"});
     }
 
     [HttpPost]
@@ -123,7 +126,7 @@ public class AuthController : ControllerBase
         });
     }
 
-    [Authorize]
+    [Authorize(AuthenticationSchemes = "Bearer", Policy = "ExclusiveOnly")]
     [HttpPost]
     [Route("revoke/{username}")]
     public async Task<IActionResult> Revoke(string username)
@@ -137,5 +140,61 @@ public class AuthController : ControllerBase
         await _userManager.UpdateAsync(user);
         
         return NoContent();
+    }
+
+    [HttpPost]
+    [Route("createRole")]
+    [Authorize(AuthenticationSchemes = "Bearer", Policy = "SuperAdminOnly")]
+    public async Task<IActionResult> CreateRole(string roleName)
+    {
+        var roleExist = await _roleManager.RoleExistsAsync(roleName);
+        if (!roleExist)
+        {
+            var roleResult = await _roleManager.CreateAsync(new IdentityRole(roleName));
+
+            if (roleResult.Succeeded)
+            {
+                _logger.LogInformation(1, "Roles added");
+                return StatusCode(StatusCodes.Status200OK,
+                        new Response { Status = "Success", Message = $"Role {roleName} added successfully" });
+            }
+            else
+            {
+                _logger.LogError(2, "Error");
+                return StatusCode(StatusCodes.Status400BadRequest,
+                        new Response { Status = "Error", Message = $"Issue adding the new {roleName} role" });
+            }
+        }
+        _logger.LogInformation(3, "Role already exist");
+        return StatusCode(StatusCodes.Status400BadRequest,
+                        new Response { Status = "Error", Message = $"Role already exist." });
+    }
+
+    [HttpPost]
+    [Route("AddUserToRole")]
+    [Authorize(AuthenticationSchemes = "Bearer", Policy = "SuperAdminOnly")]
+    public async Task<IActionResult> AddUserToRole(string email, string roleName)
+    {
+        var user = await _userManager.FindByEmailAsync(email);
+        if(user is not null)
+        {
+            var result = await _userManager.AddToRoleAsync(user, roleName);
+
+            if (result.Succeeded)
+            {
+                _logger.LogInformation(1, $"User {user.Email} added to the {roleName} role");
+                return StatusCode(StatusCodes.Status200OK,
+                        new Response { Status = "Success", Message = $"User {user.Email} added to the {roleName} role" });
+            }
+            else
+            {
+                _logger.LogError(1, $"Error: unable to add user {user.Email} to the {roleName} role");
+                return StatusCode(StatusCodes.Status400BadRequest,
+                        new Response { 
+                                Status = "Error", Message = $"Error: unable to add user {user.Email} to the {roleName} role" 
+                        });
+            }
+        }
+        return BadRequest(new { error = $"Unable to find user {email}" });
     }
 }

@@ -28,7 +28,7 @@ public class CategoriaRepositoryImpl : RepositoryImpl<Categoria>, ICategoriaRepo
         var categorias = await BuscaTodosAsync();
 
         if (!string.IsNullOrEmpty(filtro.Nome))
-            categorias = categorias.Where(categoriaFiltrada => categoriaFiltrada.Nome.Contains(filtro.Nome));
+            categorias = categorias.Where(categoriaFiltrada => categoriaFiltrada.Nome!.Contains(filtro.Nome));
 
         var categoriasFiltradas = await categorias.ToPagedListAsync(filtro.NumeroDaPagina, filtro.QuantidadeDeItensPorPagina);
         return categoriasFiltradas;

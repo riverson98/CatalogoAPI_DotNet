@@ -5,6 +5,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>238c2efd-1aba-4d5b-b13f-08e4ffc4a1e0</UserSecretsId>
+	<GenerateDocumentationFile>True</GenerateDocumentationFile>
+	<NoWarn>$(NoWarn);1591</NoWarn>
+	<IncludeOpenApiAnalyzers>True</IncludeOpenApiAnalyzers>
   </PropertyGroup>
 
   <ItemGroup>

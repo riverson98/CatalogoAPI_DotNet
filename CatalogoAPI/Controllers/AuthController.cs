@@ -7,12 +7,14 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 
 namespace CatalogoAPI.Controllers;
 
 [Route("api/v{version:apiVersion}/[controller]")]
 [ApiController]
 [ApiVersion("1.0")]
+[Produces("application/json")]
 public class AuthController : ControllerBase
 {
     private readonly ITokenService _tokenService;
@@ -33,6 +35,9 @@ public class AuthController : ControllerBase
 
     [HttpPost]
     [Route("login")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesDefaultResponseType]
     public async Task<IActionResult> Login([FromBody] LoginDTO loginDto)
     {
         var user = await _userManager.FindByNameAsync(loginDto.Username!);
@@ -72,6 +77,9 @@ public class AuthController : ControllerBase
 
     [HttpPost]
     [Route("register")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Response), StatusCodes.Status500InternalServerError)]
+    [ProducesDefaultResponseType]
     public async Task<IActionResult> Register([FromBody] RegisterDTO dto)
     {
         var userExist = await _userManager.FindByNameAsync(dto.Username!);
@@ -95,6 +103,8 @@ public class AuthController : ControllerBase
 
     [HttpPost]
     [Route("refresh-token")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> RefreshToken(TokenDTO tokenDto)
     {
         if (tokenDto is null)
@@ -109,10 +119,10 @@ public class AuthController : ControllerBase
         if (principal is null)
             return BadRequest("Invalid access token/refresh token");
 
-        var username = principal.Identity.Name;
+        var username = principal.Identity?.Name;
         var user = await _userManager.FindByNameAsync(username!);
 
-        if (user is null ||!user.RefreshToken.Equals(refreshToken)
+        if (user is null ||!user.RefreshToken!.Equals(refreshToken)
                          || user.RefreshTokenExpiryTime <= DateTime.Now)
             return BadRequest("Invalid access token/refresh token");
 
@@ -131,6 +141,9 @@ public class AuthController : ControllerBase
     [Authorize(AuthenticationSchemes = "Bearer", Policy = "ExclusiveOnly")]
     [HttpPost]
     [Route("revoke/{username}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
+    [ProducesDefaultResponseType]
     public async Task<IActionResult> Revoke(string username)
     {
         var user = await _userManager.FindByNameAsync(username);
@@ -147,6 +160,9 @@ public class AuthController : ControllerBase
     [HttpPost]
     [Route("createRole")]
     [Authorize(AuthenticationSchemes = "Bearer", Policy = "SuperAdminOnly")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Response), StatusCodes.Status400BadRequest)]
+    [ProducesDefaultResponseType]
     public async Task<IActionResult> CreateRole(string roleName)
     {
         var roleExist = await _roleManager.RoleExistsAsync(roleName);
@@ -175,6 +191,9 @@ public class AuthController : ControllerBase
     [HttpPost]
     [Route("AddUserToRole")]
     [Authorize(AuthenticationSchemes = "Bearer", Policy = "SuperAdminOnly")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Response), StatusCodes.Status400BadRequest)]
+    [ProducesDefaultResponseType]
     public async Task<IActionResult> AddUserToRole(string email, string roleName)
     {
         var user = await _userManager.FindByEmailAsync(email);

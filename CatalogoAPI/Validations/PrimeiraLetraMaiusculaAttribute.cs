@@ -9,7 +9,7 @@ namespace CatalogoAPI.Validations
             if(value is null || string.IsNullOrEmpty(value.ToString()))
                 return ValidationResult.Success;
 
-            var primeiraLetra = value.ToString()[0]
+            var primeiraLetra = value!.ToString()![0]
                 .ToString();
 
             if (!primeiraLetra.Equals(primeiraLetra.ToUpper()))

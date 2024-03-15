@@ -9,12 +9,15 @@ using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using X.PagedList;
+using Microsoft.AspNetCore.Http;
 
 namespace CatalogoAPI.Controllers;
 
 [Route("api/v{version:apiVersion}/[controller]")]
 [ApiController]
 [ApiVersion("1.0")]
+[ApiConventionType(typeof(DefaultApiConventions))]//O nome dos controladores devem está em ingles para funcionar
+[Produces("application/json")]
 public class ProdutosController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;
@@ -28,6 +31,9 @@ public class ProdutosController : ControllerBase
 
     [Authorize(AuthenticationSchemes = "Bearer", Policy = "UserOnly")]
     [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+    [ProducesDefaultResponseType]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> BuscaTodosOsProdutos()
     {
         var produtos = await _unitOfWork.ProdutoRepository.BuscaTodosAsync();
@@ -41,6 +47,9 @@ public class ProdutosController : ControllerBase
     }
 
     [HttpGet("categoria/{id:int}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+    [ProducesDefaultResponseType]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> BuscaTodosOsProdutosPorCategoria(int id)
     {
         var produtos = await _unitOfWork.ProdutoRepository.BuscaProdutosPorCategoriaAsync(id);
@@ -68,6 +77,9 @@ public class ProdutosController : ControllerBase
     }
 
     [HttpGet("{id:int:min(1)}", Name = "ObterProduto")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+    [ProducesDefaultResponseType]
     public async Task<ActionResult<ProdutoDTO>> BuscaProdutosPorId(int id)
     {
         var produto = await _unitOfWork.ProdutoRepository.BuscaAsync(produto => produto.ProdutoId.Equals(id));
@@ -81,6 +93,9 @@ public class ProdutosController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesDefaultResponseType]
     public async Task<ActionResult<ProdutoDTO>> CriaProduto(ProdutoDTO produtoDto)
     {
         if (produtoDto is null)
@@ -97,6 +112,10 @@ public class ProdutosController : ControllerBase
     }
 
     [HttpPatch("{id:int}/AtualizaParcialmente")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesDefaultResponseType]
     public async Task<ActionResult<ProdutoDTOUpdateResponse>> AtualizaParcialmente(int id, 
         JsonPatchDocument<ProdutoDTOUpdateRequest> produtoRequestDto)
     {
@@ -123,6 +142,9 @@ public class ProdutosController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesDefaultResponseType]
     public async Task<ActionResult<ProdutoDTO>> AtualizaProduto(int id, ProdutoDTO produtoDto)
     {
         if(!id.Equals(produtoDto.ProdutoId))
@@ -140,6 +162,9 @@ public class ProdutosController : ControllerBase
 
     [HttpDelete("{id:int}")]
     [Authorize(AuthenticationSchemes = "Bearer", Policy = "AdminOnly")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+    [ProducesDefaultResponseType]
     public async Task<ActionResult<ProdutoDTO>> DeletaProdutoPorId(int id)
     {
         var produto = await _unitOfWork.ProdutoRepository.BuscaAsync(produto => produto.ProdutoId.Equals(id));

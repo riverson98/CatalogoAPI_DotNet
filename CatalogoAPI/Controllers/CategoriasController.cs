@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Newtonsoft.Json;
 using X.PagedList;
+using Microsoft.AspNetCore.Http;
 
 namespace CatalogoAPI.Controllers;
 
@@ -19,6 +20,7 @@ namespace CatalogoAPI.Controllers;
 [EnableCors("DominiosPermitidos")]
 //[EnableRateLimiting("fixedwindow")]
 [ApiVersion("1.0")]
+[Produces("application/json")]
 public class CategoriasController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;
@@ -34,18 +36,14 @@ public class CategoriasController : ControllerBase
         _mapper = mapper;
     }
 
-    [HttpGet("lerArquivoConfiguracao")]
-    public string buscaValorDeConfiguracao()
-    {
-        var valor1 = _configuration["chave1"];
-        var valor2 = _configuration["chave2"];
-        var secao1 = _configuration["secao1:chave2"];
-
-        return $"Chave 1 = {valor1} \nChave 2 = {valor2} \nSeção 1 = {secao1}";
-    }
-
+    /// <summary>
+    /// Obtem uma lista de objetos Categoria
+    /// </summary>
+    /// <returns>Lista de objetos categorias</returns>
     //[Authorize(AuthenticationSchemes = "Bearer")]
     [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IEnumerable<CategoriaDTO>>> BuscaTodasAsCategorias()
     {
         var categorias = await _unitOfWork.CategoriaRepository.BuscaTodosAsync();
@@ -58,6 +56,16 @@ public class CategoriasController : ControllerBase
         return Ok(categoriasDto);
     }
 
+    /// <summary>
+    /// Obtem uma categoria pelo seu id
+    /// </summary>
+    /// <remarks>
+    /// Exemplo de request:
+    /// 
+    ///     GET api/v1/categorias/paginacao?NumeroDaPagina=1&amp;QuantidadeDeItensPorPagina=1
+    /// </remarks>
+    /// <param name="paginacao">Numero da pagina e quantidades de itens a ser buscado (max:50)</param>
+    /// <returns>Objeto categoria</returns>
     [HttpGet("paginacao")]
     public async Task<ActionResult<IEnumerable<CategoriaDTO>>> BuscaTodosAsCategoriasComPaginacao([FromQuery] 
                                                                                    ParametrosDePaginacaoDasCategorias paginacao)
@@ -66,6 +74,16 @@ public class CategoriasController : ControllerBase
         return ObtemCategorias(categorias);
     }
 
+    /// <summary>
+    /// Obtem uma lista categoria pelo nome
+    /// </summary>
+    /// <remarks>
+    /// Exemplo de request:
+    /// 
+    ///     GET api/v1/categorias/filtro/nome/paginacao?Nome=exemplo&amp;NumeroDaPagina=1&amp;QuantidadeDeItensPorPagina=1
+    /// </remarks>
+    /// <param name="filtro">Nome do objeto numero da pagina e quantidade de itens por pagina(max:50)</param>
+    /// <returns>Objeto categoria filtrado e paginado</returns>
     [HttpGet("filtro/nome/paginacao")]
     public async Task<ActionResult<IEnumerable<CategoriaDTO>>> BuscaCategoriasFiltradas([FromQuery] CategoriasFiltroNome filtro)
     {
@@ -73,7 +91,19 @@ public class CategoriasController : ControllerBase
         return ObtemCategorias(categoriasFiltradas);
     }
 
+    /// <summary>
+    /// Obtem uma categoria pelo seu id
+    /// </summary>
+    /// <remarks>
+    /// Exemplo de request:
+    /// 
+    ///     GET api/v1/categorias?id=1
+    /// </remarks>
+    /// <param name="id">Codigo do objeto categoria buscado</param>
+    /// <returns>Objeto categoria</returns>
     [HttpGet("{id:int:min(1)}", Name = "ObterCategoria")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CategoriaDTO>> BuscaCategoriasPorId(int id)
     {
         _logger.LogInformation($"########################### GET  api/categorias/id = {id}  #######################################");
@@ -87,7 +117,24 @@ public class CategoriasController : ControllerBase
         return Ok(categoriaDto);
     }
 
+    /// <summary>
+    /// Inclui uma nova categoria
+    /// </summary>
+    /// <remarks>
+    /// Exemplo de request:
+    ///     
+    ///     POST api/v1/categorias
+    ///     {
+    ///         "nome" : "categoria exemplo",
+    ///         "imagemUrl":"http://categoriaExemplo.jpg"
+    ///     }
+    /// </remarks>
+    /// <param name="categoriaDto">Objeto categoria</param>
+    /// <returns>Objeto categoria criada</returns>
+    /// <remarks>Retorna um objeto categoria incluido</remarks>
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CategoriaDTO>> CriaCategoria(CategoriaDTO categoriaDto)
     {
         if (categoriaDto is null)
@@ -104,8 +151,26 @@ public class CategoriasController : ControllerBase
         return new CreatedAtRouteResult("ObterCategoria", new { id = novaCategoriaDto.CategoriaId }, novaCategoriaDto);
     }
 
+    /// <summary>
+    /// Atualiza informações do objeto categoria
+    /// </summary>
+    /// <remarks>
+    /// Exemplo de request:
+    /// 
+    ///     PUT api/v1/categorias?id=1 
+    ///     {
+    ///         "categoriaId":"1"
+    ///         "nome" : "categoria exemplo",
+    ///         "imagemUrl":"http://categoriaExemplo.jpg"
+    ///     }
+    /// </remarks>
+    /// <param name="id">Codigo do objeto categoria e ser editado</param>
+    /// <param name="categoriaDto">Informacões do objeto a ser incluido</param>
+    /// <returns>Objeto categoria atualizado</returns>
     [HttpPut("{id:int}")]
-    [DisableCors]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesDefaultResponseType]
     public async Task<ActionResult<CategoriaDTO>> AtualizaCategoria(int id, CategoriaDTO categoriaDto)
     {
         if (!id.Equals(categoriaDto.CategoriaId))
@@ -121,8 +186,21 @@ public class CategoriasController : ControllerBase
         return Ok(categoriaAtualizadaDto);
     }
 
+    /// <summary>
+    /// Deleta objeto categoria pelo o id
+    /// </summary>
+    /// <remarks>
+    /// Exemplo de request:
+    /// 
+    ///     DELETE api/v1/categorias?id=1
+    /// </remarks>
+    /// <param name="id">Codigo do objeto categoria</param>
+    /// <returns>Categoria excluida</returns>
     [HttpDelete("{id:int}")]
     [Authorize(Policy = "AdminOnly")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<CategoriaDTO>> DeletaCategoriaPorId(int id)
     {
         var categoria = await _unitOfWork.CategoriaRepository.BuscaAsync(categoria => categoria.CategoriaId.Equals(id));

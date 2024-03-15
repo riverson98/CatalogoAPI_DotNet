@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using Asp.Versioning;
+using AutoMapper;
 using CatalogoAPI.DTOs;
 using CatalogoAPI.Models;
 using CatalogoAPI.Pagination;
@@ -11,8 +12,9 @@ using X.PagedList;
 
 namespace CatalogoAPI.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/v{version:apiVersion}/[controller]")]
 [ApiController]
+[ApiVersion("1.0")]
 public class ProdutosController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;

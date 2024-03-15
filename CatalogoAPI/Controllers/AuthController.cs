@@ -1,4 +1,5 @@
-﻿using CatalogoAPI.DTOs;
+﻿using Asp.Versioning;
+using CatalogoAPI.DTOs;
 using CatalogoAPI.Models;
 using CatalogoAPI.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -9,8 +10,9 @@ using System.Security.Claims;
 
 namespace CatalogoAPI.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/v{version:apiVersion}/[controller]")]
 [ApiController]
+[ApiVersion("1.0")]
 public class AuthController : ControllerBase
 {
     private readonly ITokenService _tokenService;

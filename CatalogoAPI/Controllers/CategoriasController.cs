@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using Asp.Versioning;
+using AutoMapper;
 using CatalogoAPI.DTOs;
 using CatalogoAPI.Filters;
 using CatalogoAPI.Models;
@@ -13,10 +14,11 @@ using X.PagedList;
 
 namespace CatalogoAPI.Controllers;
 
-[Route("api/[controller]")]
+[Route("api/v{version:apiVersion}/[controller]")]
 [ApiController]
 [EnableCors("DominiosPermitidos")]
 //[EnableRateLimiting("fixedwindow")]
+[ApiVersion("1.0")]
 public class CategoriasController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;

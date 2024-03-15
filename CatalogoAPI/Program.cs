@@ -4,17 +4,20 @@ using CatalogoAPI.Extensions;
 using CatalogoAPI.Filters;
 using CatalogoAPI.Logging;
 using CatalogoAPI.Models;
+using CatalogoAPI.RateLimitOptions;
 using CatalogoAPI.Repositories;
 using CatalogoAPI.Repositories.Impl;
 using CatalogoAPI.Services;
 using CatalogoAPI.Services.Impl;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -95,6 +98,37 @@ builder.Services.AddAuthentication(options =>
 
     };
 });
+var rateLimit = new MyRateLimitOptions();
+builder.Configuration.GetSection(MyRateLimitOptions.MyRateLimit).Bind(rateLimit);
+
+builder.Services.AddRateLimiter(rateLimitOptions =>
+{
+    rateLimitOptions.AddFixedWindowLimiter("fixedwindow", options =>
+    {
+        options.PermitLimit = rateLimit.PermitLimit;
+        options.Window = TimeSpan.FromSeconds(rateLimit.Window);
+        options.QueueLimit = rateLimit.QueueLimit;
+        options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+    });
+    rateLimitOptions.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpcontext =>
+                            RateLimitPartition.GetFixedWindowLimiter(
+                                               partitionKey: httpcontext.User?.Identity?.Name ??
+                                                             httpcontext.Request.Headers.Host.ToString(),
+                                               factory: partition => new FixedWindowRateLimiterOptions
+                                               {
+                                                   AutoReplenishment = true,
+                                                   PermitLimit = rateLimit.PermitLimit,
+                                                   QueueLimit = rateLimit.QueueLimit,
+                                                   Window = TimeSpan.FromSeconds(rateLimit.Window)
+                                               })) ;
+});
+
 builder.Services.AddScoped<ApiLoggingFilter>();
 builder.Services.AddScoped<ICategoriaRepository, CategoriaRepositoryImpl>();
 builder.Services.AddScoped<IProdutoRepository, ProdutoRespositoryImpl>();
@@ -108,6 +142,17 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 string? mySqlConnection = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseMySql(mySqlConnection, ServerVersion.AutoDetect(mySqlConnection)));
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("DominiosPermitidos",
+                      policy =>
+                      {
+                          policy.WithOrigins("https://localhost:7022")
+                                .WithMethods("GET", "POST")
+                                .AllowAnyHeader();
+                      });
+});
 
 
 builder.Logging.AddProvider(new CustomLoggerProvider(new CustomLoggerProviderConfiguration
@@ -128,6 +173,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseStaticFiles();
+
+app.UseRouting();
+
+app.UseRateLimiter();
+
+app.UseCors();
 
 app.UseAuthorization();
 

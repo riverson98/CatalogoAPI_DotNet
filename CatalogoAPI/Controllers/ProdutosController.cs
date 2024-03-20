@@ -32,14 +32,14 @@ public class ProdutosController : ControllerBase
     [Authorize(AuthenticationSchemes = "Bearer", Policy = "UserOnly")]
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status204NoContent)]
     [ProducesDefaultResponseType]
     public async Task<ActionResult<IEnumerable<ProdutoDTO>>> BuscaTodosOsProdutos()
     {
         var produtos = await _unitOfWork.ProdutoRepository.BuscaTodosAsync();
 
         if (produtos is null)
-            return NotFound("Produtos não encontrados");
+            return NoContent();
 
         var produtosDto = _mapper.Map<IEnumerable<ProdutoDTO>>(produtos);
 
@@ -82,6 +82,8 @@ public class ProdutosController : ControllerBase
     [ProducesDefaultResponseType]
     public async Task<ActionResult<ProdutoDTO>> BuscaProdutosPorId(int id)
     {
+        if (id <= 0)
+            return BadRequest("Id deve ser maior que zero");
         var produto = await _unitOfWork.ProdutoRepository.BuscaAsync(produto => produto.ProdutoId.Equals(id));
 
         if (produto is null)
